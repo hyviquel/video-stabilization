@@ -1,4 +1,5 @@
-{ "animals": [[], ["animals-hq.mp4", "animals-hd.mp4", "animals-4k.webm"]],
+{ "animals": [["https://www.dropbox.com/s/qn65s03pgu4x1w1/animals-hq.mp4?dl=0","https://www.dropbox.com/s/4d1ok5sxjzuxuxp/animals-hd.mp4?dl=0", "https://www.dropbox.com/s/bx3aamdy269e6l7/animals-4k.webm?dl=0"],
+                ["animals-hq.mp4", "animals-hd.mp4", "animals-4k.webm"]],
   "birds": [["https://www.dropbox.com/s/5ron9rsd22axyju/birds-hq.mp4?dl=0", "https://www.dropbox.com/s/yp2v26r3n5mq7d4/birds-hd.mp4?dl=0", "https://www.dropbox.com/s/8j890h8xl41lxyz/birds-4k.webm?dl=0"],
                   ["birds-hq.mp4", "birds-hd.mp4", "birds-4k.webm"]
                  ],

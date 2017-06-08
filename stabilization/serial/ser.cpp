@@ -22,7 +22,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <pthread.h>
 #include <math.h>
 #include <cstdlib>
-//#define N_T  8
+#define GB  1024l * 1024l  * 1024  // 1GB
 
 using namespace std;
 using namespace cv;
@@ -89,6 +89,7 @@ double rtclock()
 
 long long int BUFF = 0l;
 
+/*
 float getVideoSize(VideoCapture cap)
 {
     float count_memory = 0.0;
@@ -103,6 +104,7 @@ float getVideoSize(VideoCapture cap)
     }
     return count_memory / (GB); // Retorna o tamanho do video em GB
 }
+*/
 
 /*Carrega um limite de quadros para memoria, dado por memory_limit*/
 vector <Mat> readFrames(VideoCapture cap, long memory_limit)
@@ -184,7 +186,7 @@ int main(int argc, char **argv)
 {
     /*Declaracao das variaveis usadas ao longo do codigo*/
     double t_start, t_end, t_acc = 0.0;
-    long   memory_limit  = (1024l * 1024l  * 1024  ) * 2; // 2GB
+    long   memory_limit; // 2GB
     vector <Mat> frames;
     Mat last_frame;
     vector <TransformParam> prev_to_cur_transform;
@@ -194,19 +196,21 @@ int main(int argc, char **argv)
     setUseOptimized (0);
 
     /*Confere se o nome do arquivo foi passado por linha de comando*/
-    if(argc < 2) {
+    if(argc < 3) {
         cout << "./VideoStab [video.avi]" << endl;
+        cout << "Memory Limit" << endl;
         return 0;
     }
 
     VideoCapture cap(argv[1]);
+    memory_limit = atol (argv[2]);
     assert(cap.isOpened());
 
     //cout << "Video size: " << video_size << endl;
     //reposiciona o cursor para o inicio do video
     cap.set(CV_CAP_PROP_POS_FRAMES, 0);
 
-    frames = readFrames(cap, memory_limit);
+    frames = readFrames(cap, memory_limit * GB);
     Data *data = new Data;
     while( frames.size() > 0 ){
         count_frames += frames.size()-1;
@@ -239,7 +243,7 @@ int main(int argc, char **argv)
         frames.clear();
 
         /* Le os quadros faltantes */
-        frames = readFrames(cap, memory_limit);
+        frames = readFrames(cap, memory_limit * GB);
         //cout <<  t_acc << endl;
 
 
