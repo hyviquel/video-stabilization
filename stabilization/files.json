@@ -3,6 +3,8 @@
   "birds": [["https://www.dropbox.com/s/5ron9rsd22axyju/birds-hq.mp4?dl=0", "https://www.dropbox.com/s/yp2v26r3n5mq7d4/birds-hd.mp4?dl=0", "https://www.dropbox.com/s/8j890h8xl41lxyz/birds-4k.webm?dl=0"],
                   ["birds-hq.mp4", "birds-hd.mp4", "birds-4k.webm"]
                  ],
- "vancouver":[[], ["vancouver-hq.mp4", "vancouver-hd.mp4","vancouver-4k.mp4"]],
- "park": [[], ["park-hq.mp4", "park-hd.mp4", "park-4k.webm"]]
+  "vancouver":[["https://www.dropbox.com/s/mzya2lugwsiv64q/vancouver-hq.mp4?dl=0", "https://www.dropbox.com/s/3frj6fuhoyfoce7/vancouver-hd.mp4?dl=0", "https://www.dropbox.com/s/fexm8rss1db2j3i/vancouver-4k.mp4?dl=0"],
+             ["vancouver-hq.mp4", "vancouver-hd.mp4","vancouver-4k.mp4"]],
+  "toquio": [["https://onedrive.live.com/download?cid=1128ABF5787AF80D&resid=1128ABF5787AF80D%217516&authkey=AHZbvquuhZAYuc4", "https://onedrive.live.com/download?cid=1128ABF5787AF80D&resid=1128ABF5787AF80D%217517&authkey=AC5Pcexnu1GthrM", "https://onedrive.live.com/download?cid=1128ABF5787AF80D&resid=1128ABF5787AF80D%217518&authkey=AGsWNYAOyNBKoZA"],
+            ["toquio-hq.mp4", "toquio-hd.mp4", "toquio-4k.webm"]]
 }
