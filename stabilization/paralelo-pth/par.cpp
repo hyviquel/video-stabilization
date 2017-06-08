@@ -22,7 +22,7 @@ THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND 
 #include <pthread.h>
 #include <math.h>
 #include <cstdlib>
-#define MEMORY_LIMIT  1024l * 1024l  * 1024 * 2 // 2GB
+#define GB  1024l * 1024l  * 1024  // 1GB
 
 using namespace std;
 using namespace cv;
@@ -87,6 +87,25 @@ double rtclock()
     return(Tp.tv_sec + Tp.tv_usec*1.0e-6);
 }
 
+long long int BUFF = 0l;
+
+/*
+float getVideoSize(VideoCapture cap)
+{
+    float count_memory = 0.0;
+    float GB = 1024.0*1024.0*1024.0;
+    Mat cur;
+    while(true) {
+        cap >> cur;
+        if(cur.data == NULL) {
+            break;
+        }
+        count_memory  +=  (float)cur.total() * (float)cur.elemSize(); // EM Bytes
+    }
+    return count_memory / (GB); // Retorna o tamanho do video em GB
+}
+*/
+
 /*Carrega um limite de quadros para memoria, dado por memory_limit*/
 vector <Mat> readFrames(VideoCapture cap, long memory_limit)
 {
@@ -100,6 +119,7 @@ vector <Mat> readFrames(VideoCapture cap, long memory_limit)
             break;
         }
         frames.push_back(cur);
+        count_memory  +=  cur.total() * cur.elemSize(); // EM Bytes
     }
     return frames;
 }
@@ -167,30 +187,33 @@ int main(int argc, char **argv)
     /*Declaracao das variaveis usadas ao longo do codigo*/
     double t_start, t_end, t_acc = 0.0;
     pthread_t* threads ;
-
     vector <Mat> frames;
     Mat last_frame;
     vector <TransformParam> prev_to_cur_transform;
     long count_frames = 0;
     long nt=0;
+    long memory_limit;
 
     /*Poem o opecnv em modo sequencial e nao otimizado*/
     setNumThreads(0);
     setUseOptimized (0);
 
     /*Confere se o nome do arquivo foi passado por linha de comando*/
-    if(argc < 3) {
+    if(argc < 4) {
         cout << "./VideoStab [video.avi]" << endl;
         cout << "Number of threads" << endl;
+        cout << "Memory Limit" << endl;
+
         return 0;
     }
 
     VideoCapture cap(argv[1]);
-    nt = atol (argv[2]);
+    memory_limit = atol (argv[2]);
+    nt = atol (argv[3]);
     threads = new pthread_t [nt];
     assert(cap.isOpened());
 
-    frames = readFrames(cap, MEMORY_LIMIT);
+    frames = readFrames(cap, memory_limit * GB);
 
     /*aloca estrutura de dados para os argumentos das threads */
     vector <Data *> datas;
@@ -215,6 +238,7 @@ int main(int argc, char **argv)
         t_end = rtclock();
         t_acc +=    t_end - t_start;
         prev_to_cur_transform.insert(prev_to_cur_transform.end(), prev_to_cur_transform_tmp->begin(), prev_to_cur_transform_tmp->end());
+        delete prev_to_cur_transform_tmp;
 
         /*Pega o utlimo frame desse slice */
         last_frame = frames[frames.size()-1];
@@ -223,7 +247,7 @@ int main(int argc, char **argv)
         frames.clear();
 
         /* Le os quadros faltantes */
-        frames = readFrames(cap, MEMORY_LIMIT);
+        frames = readFrames(cap, memory_limit * GB);
 
         if (frames.size() > 0){
             /* Copia o ultimo frame para a primeira posicao do novo slice */
@@ -232,9 +256,8 @@ int main(int argc, char **argv)
     }
     fprintf(stdout, "%0.6lf", t_acc);
 
-    delete [] threads;
-
     // Step 2 - Accumulate the transformations to get the image trajectory
+
     // Accumulated frame to frame transform
     double a = 0;
     double x = 0;
@@ -347,5 +370,9 @@ int main(int argc, char **argv)
         waitKey(20);
         k++;
     }*/
+
+    delete [] threads;
+    //printf("\n");
+
     return 0;
 }
