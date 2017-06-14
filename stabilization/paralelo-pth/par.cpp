@@ -185,11 +185,10 @@ void * transformationFrame(void * data )
 int main(int argc, char **argv)
 {
     /*Declaracao das variaveis usadas ao longo do codigo*/
-    double t_start, t_end, t_acc = 0.0;
+    double t_run, t_read = 0.0, t_r = 0.0;
     pthread_t* threads ;
     vector <Mat> frames;
     Mat last_frame;
-    vector <TransformParam> prev_to_cur_transform;
     long count_frames = 0;
     long nt=0;
     long memory_limit;
@@ -213,7 +212,12 @@ int main(int argc, char **argv)
     threads = new pthread_t [nt];
     assert(cap.isOpened());
 
+    t_r = rtclock();
     frames = readFrames(cap, memory_limit * GB);
+    t_read += rtclock() - t_r;
+
+    vector <TransformParam> prev_to_cur_transform;
+    vector <TransformParam> *prev_to_cur_transform_tmp = new vector<TransformParam>(frames.size()-1);
 
     /*aloca estrutura de dados para os argumentos das threads */
     vector <Data *> datas;
@@ -221,10 +225,9 @@ int main(int argc, char **argv)
         Data *data = new Data;
         datas.push_back(data);
     }
+    t_run = rtclock();
     while( frames.size() > 0 ){
         count_frames += frames.size()-1;
-        vector <TransformParam> *prev_to_cur_transform_tmp = new vector<TransformParam>(frames.size()-1);
-        t_start = rtclock();
         for(long i=0; i < nt; i++ ){
             datas[i]->nt = nt;
             datas[i]->rank = i;
@@ -235,10 +238,7 @@ int main(int argc, char **argv)
         for(int i=0; i < nt; i++ ){
             pthread_join(threads[i], NULL);
         }
-        t_end = rtclock();
-        t_acc +=    t_end - t_start;
         prev_to_cur_transform.insert(prev_to_cur_transform.end(), prev_to_cur_transform_tmp->begin(), prev_to_cur_transform_tmp->end());
-        delete prev_to_cur_transform_tmp;
 
         /*Pega o utlimo frame desse slice */
         last_frame = frames[frames.size()-1];
@@ -246,15 +246,20 @@ int main(int argc, char **argv)
         /*libera memoria*/
         frames.clear();
 
+        t_r = rtclock();
         /* Le os quadros faltantes */
         frames = readFrames(cap, memory_limit * GB);
+        t_read += rtclock() - t_r;
 
         if (frames.size() > 0){
             /* Copia o ultimo frame para a primeira posicao do novo slice */
             frames.insert(frames.begin(), last_frame);
+            prev_to_cur_transform_tmp->resize(frames.size()-1);
+
         }
     }
-    fprintf(stdout, "%0.6lf", t_acc);
+    t_run = rtclock()  - t_run;
+    fprintf(stdout, "%0.6lf", t_run - t_read);
 
     // Step 2 - Accumulate the transformations to get the image trajectory
 
