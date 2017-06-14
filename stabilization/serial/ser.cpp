@@ -218,7 +218,6 @@ int main(int argc, char **argv)
     while( frames.size() > 0 ){
         count_frames += frames.size()-1;
         // Step 1 - Get previous to current frame transformation (dx, dy, da) for all frames
-        t_start = rtclock();
         data->nt = 1;
         data->rank = 0;
         data->frames = &frames;
@@ -362,8 +361,8 @@ int main(int argc, char **argv)
         imshow("before and after", canvas);
         waitKey(20);
         k++;
-    }
-    */
+    }*/
+
 
     //printf("\n");
 
