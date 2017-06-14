@@ -60,12 +60,12 @@ def main():
 
     files = readJsonFile('files.json')
     serial_path = 'serial/ser'
-    #exec_paths = [('paralelo-pth/', 'paralelo-pth/par'),
-    #              ('paralelo-openmp/', 'paralelo-openmp/par'),
-    #            ]
+    exec_paths = [  ('parallel-openmp', 'parallel-openmp/par'),
+                    ('paralelo-pth', 'paralelo-pth/par')
+                ]
 
-    memory_limit = 2 #GB
-    exec_paths = [('paralelo-pth', 'paralelo-pth/par')]
+    memory_limit = 1 #GB
+    #exec_paths = [('paralelo-pth', 'paralelo-pth/par')]
     compile( ['serial'] + [ path[0] for path in exec_paths] )
 
     for ex in exec_paths:
@@ -85,7 +85,7 @@ def main():
 
                 #executa a chamadas a o metodo de estabilizacao de video para
                 # 2, 4, 8, 16 e 32 threads
-                for i, nt in enumerate([2, 4, 8, 16 , 32]):
+                for i, nt in enumerate([2, 4, 8, 16 , 20]):
                     stddata = executeVideoEstablization(ex[1], file, memory_limit, nt)
                     parallel_time = float(stddata[0].split()[-1].strip())
                     exec_info['parallel'][i] = parallel_time
