@@ -185,12 +185,12 @@ void * transformationFrame(void * data )
 int main(int argc, char **argv)
 {
     /*Declaracao das variaveis usadas ao longo do codigo*/
-    double t_start, t_end, t_acc = 0.0;
+    double t_run, t_read = 0.0, t_r = 0.0;
     long   memory_limit; // 2GB
     vector <Mat> frames;
     Mat last_frame;
-    vector <TransformParam> prev_to_cur_transform;
     long count_frames = 0;
+
     /*Poem o opecnv em modo sequencial e nao otimizado*/
     setNumThreads(0);
     setUseOptimized (0);
@@ -206,55 +206,48 @@ int main(int argc, char **argv)
     memory_limit = atol (argv[2]);
     assert(cap.isOpened());
 
-    //cout << "Video size: " << video_size << endl;
-    //reposiciona o cursor para o inicio do video
-    cap.set(CV_CAP_PROP_POS_FRAMES, 0);
-
+    t_r = rtclock();
     frames = readFrames(cap, memory_limit * GB);
+    t_read += rtclock() - t_r;
+
+    vector <TransformParam> prev_to_cur_transform;
+    vector <TransformParam> *prev_to_cur_transform_tmp = new vector<TransformParam>(frames.size()-1);
     Data *data = new Data;
+
+    t_run = rtclock();
     while( frames.size() > 0 ){
         count_frames += frames.size()-1;
-        vector <Data *> datas;
-        vector <TransformParam> *prev_to_cur_transform_tmp = new vector<TransformParam>(frames.size()-1);
         // Step 1 - Get previous to current frame transformation (dx, dy, da) for all frames
         t_start = rtclock();
         data->nt = 1;
         data->rank = 0;
         data->frames = &frames;
         data->prev_to_cur_transform = prev_to_cur_transform_tmp;
-        datas.push_back(data);
         transformationFrame((void *)data);
-        t_end = rtclock();
-        t_acc +=    t_end - t_start;
 
         prev_to_cur_transform.insert(prev_to_cur_transform.end(), prev_to_cur_transform_tmp->begin(), prev_to_cur_transform_tmp->end());
-        delete prev_to_cur_transform_tmp;
-
-        /*Copia as transformacoes */
-        //prev_to_cur_transform.insert(prev_to_cur_transform.end(), prev_to_cur_transform_tmp.begin(), prev_to_cur_transform_tmp.end());
 
         /*Pega o utlimo frame desse slice */
         last_frame = frames[frames.size()-1];
 
-        //fprintf(stdout, "\n%0.6lfs\n", t_end - t_start);
-
         /*libera memoria*/
-        //prev_to_cur_transform_tmp.clear();
         frames.clear();
 
+        t_r = rtclock();
         /* Le os quadros faltantes */
         frames = readFrames(cap, memory_limit * GB);
-        //cout <<  t_acc << endl;
-
+        t_read += rtclock() - t_r;
 
         if (frames.size() > 0){
             /* Copia o ultimo frame para a primeira posicao do novo slice */
             frames.insert(frames.begin(), last_frame);
+            prev_to_cur_transform_tmp->resize(frames.size()-1);
         }
 
     }
 
-    fprintf(stdout, "%0.6lf", t_acc);
+    t_run = rtclock()  - t_run;
+    fprintf(stdout, "%0.6lf", t_run - t_read);
 
     // Step 2 - Accumulate the transformations to get the image trajectory
 
