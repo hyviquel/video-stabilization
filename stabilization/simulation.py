@@ -58,12 +58,14 @@ def executeCommand(cmd='', cwd=None):
 
 def main():
 
+
     files = readJsonFile('files.json')
     serial_path = 'serial/ser'
     exec_paths = [  ('parallel-openmp', 'parallel-openmp/par'),
                     ('paralelo-pth', 'paralelo-pth/par')
                 ]
 
+    ser_t = {}
     memory_limit = 1 #GB
     #exec_paths = [('paralelo-pth', 'paralelo-pth/par')]
     compile( ['serial'] + [ path[0] for path in exec_paths] )
@@ -79,20 +81,21 @@ def main():
                              "speedup": [0, 0, 0, 0, 0],
                              "efficiency": [0, 0, 0, 0, 0]
                             }
-                #executa aqui a versao sequencial
-                stddata = executeVideoEstablization(serial_path, file, memory_limit)
-                serial_time = float(stddata[0].split()[-1].strip())
+                if not set_t.get(file):
+                    #executa aqui a versao sequencial
+                    stddata = executeVideoEstablization(serial_path, file, memory_limit)
+                    ser_t[file] = float(stddata[0].split()[-1].strip())
 
                 #executa a chamadas a o metodo de estabilizacao de video para
                 # 2, 4, 8, 16 e 32 threads
-                for i, nt in enumerate([2, 4, 8, 16 , 20]):
+                for i, nt in enumerate([2, 4, 8, 16 , 32]):
                     stddata = executeVideoEstablization(ex[1], file, memory_limit, nt)
                     parallel_time = float(stddata[0].split()[-1].strip())
                     exec_info['parallel'][i] = parallel_time
-                    exec_info['speedup'][i] = speedup = (serial_time / parallel_time)
+                    exec_info['speedup'][i] = speedup = (ser_t[file] / parallel_time)
                     exec_info['efficiency'][i] = speedup / float(nt)
 
-                exec_info['serial'] = serial_time
+                exec_info['serial'] = ser_t[file]
                 stats[key][file]['metrics'] = exec_info
                 print stats
                 removeFile(file)
