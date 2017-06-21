@@ -81,7 +81,7 @@ def main():
                              "speedup": [0, 0, 0, 0, 0],
                              "efficiency": [0, 0, 0, 0, 0]
                             }
-                if not set_t.get(file):
+                if not ser_t.get(file):
                     #executa aqui a versao sequencial
                     stddata = executeVideoEstablization(serial_path, file, memory_limit)
                     ser_t[file] = float(stddata[0].split()[-1].strip())
