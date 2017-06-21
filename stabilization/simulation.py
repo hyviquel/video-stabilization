@@ -66,7 +66,7 @@ def main():
                 ]
 
     ser_t = {}
-    memory_limit = 1 #GB
+    memory_limit = 400 #GB
     #exec_paths = [('paralelo-pth', 'paralelo-pth/par')]
     compile( ['serial'] + [ path[0] for path in exec_paths] )
 
