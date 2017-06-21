@@ -87,8 +87,6 @@ double rtclock()
     return(Tp.tv_sec + Tp.tv_usec*1.0e-6);
 }
 
-long long int BUFF = 0l;
-
 /*
 float getVideoSize(VideoCapture cap)
 {
@@ -111,7 +109,6 @@ vector <Mat> readFrames(VideoCapture cap, long memory_limit)
 {
     vector <Mat> frames;
     long count_memory = 0l;
-    int i = 0;
     while(count_memory < memory_limit) {
         Mat cur;
         cap >> cur;
@@ -256,7 +253,9 @@ int main(int argc, char **argv)
 
         }
     }
-    fprintf(stdout, "%0.6lf", t_run);
+
+    cout << std::setprecision(6) << t_run << endl;
+    //fprintf(stdout, "%0.6lf", t_run);
 
     // Step 2 - Accumulate the transformations to get the image trajectory
 
@@ -264,7 +263,6 @@ int main(int argc, char **argv)
     double a = 0;
     double x = 0;
     double y = 0;
-    int k=0;
     Mat  cur;
 
     vector <Trajectory> trajectory; // trajectory at all frames
