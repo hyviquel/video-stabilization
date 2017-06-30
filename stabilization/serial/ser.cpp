@@ -88,7 +88,7 @@ double rtclock()
 }
 
 
-/*Carrega um limite de quadros para memoria, dado por memory_limit*/
+/*Loads a frame boundary for memory, given by memory_limit*/
 vector <Mat> readFrames(VideoCapture cap, long memory_limit)
 {
     vector <Mat> frames;
@@ -105,7 +105,7 @@ vector <Mat> readFrames(VideoCapture cap, long memory_limit)
     return frames;
 }
 
-//Calcula transformaca nos frames
+//Calculates transform in the frames
 void * transformationFrame(void * data )
 {
     Mat  cur_grey, prev_grey;
@@ -163,73 +163,10 @@ void * transformationFrame(void * data )
     }
 }
 
-int main(int argc, char **argv)
+/* Calculates the trajectory */
+vector <Trajectory> accumulateTransformations(
+                    vector <TransformParam> prev_to_cur_transform)
 {
-    /*Declaracao das variaveis usadas ao longo do codigo*/
-    double t_run =0.0, t_r = 0.0;
-    long   memory_limit; // 2GB
-    vector <Mat> frames;
-    Mat last_frame;
-    long count_frames = 0;
-
-    /*Poem o opecnv em modo sequencial e nao otimizado*/
-    setNumThreads(0);
-    setUseOptimized (0);
-
-    /*Confere se o nome do arquivo foi passado por linha de comando*/
-    if(argc < 3) {
-        cout << "./VideoStab [video.avi]" << endl;
-        cout << "Memory Limit" << endl;
-        return 0;
-    }
-
-    VideoCapture cap(argv[1]);
-    memory_limit = atol (argv[2]);
-    assert(cap.isOpened());
-
-    frames = readFrames(cap, memory_limit * GB);
-
-    vector <TransformParam> prev_to_cur_transform;
-    vector <TransformParam> *prev_to_cur_transform_tmp = new vector<TransformParam>(frames.size()-1);
-    Data *data = new Data;
-
-    while( frames.size() > 0 ){
-        count_frames += frames.size()-1;
-        // Step 1 - Get previous to current frame transformation (dx, dy, da) for all frames
-        data->nt = 1;
-        data->rank = 0;
-        data->frames = &frames;
-        data->prev_to_cur_transform = prev_to_cur_transform_tmp;
-
-        t_r = rtclock();
-        transformationFrame((void *)data);
-        t_run += rtclock() - t_r;
-
-        prev_to_cur_transform.insert(prev_to_cur_transform.end(), prev_to_cur_transform_tmp->begin(), prev_to_cur_transform_tmp->end());
-
-        /*Pega o utlimo frame desse slice */
-        last_frame = frames[frames.size()-1];
-
-        /*libera memoria*/
-        frames.clear();
-
-        /* Le os quadros faltantes */
-        frames = readFrames(cap, memory_limit * GB);
-
-
-        if (frames.size() > 0){
-            /* Copia o ultimo frame para a primeira posicao do novo slice */
-            frames.insert(frames.begin(), last_frame);
-            prev_to_cur_transform_tmp->resize(frames.size()-1);
-        }
-
-    }
-
-    cout << std::setprecision(6) << t_run << endl;
-    //fprintf(stdout, "%0.6lf", t_run);
-
-    // Step 2 - Accumulate the transformations to get the image trajectory
-
     // Accumulated frame to frame transform
     double a = 0;
     double x = 0;
@@ -245,8 +182,14 @@ int main(int argc, char **argv)
 
         trajectory.push_back(Trajectory(x,y,a));
     }
+    return trajectory;
+}
 
-    // Step 3 - Smooth out the trajectory using an averaging window
+/* Calculates smoothed trajectory */
+vector <Trajectory> smoothedTrajectory
+(
+                    vector <Trajectory> trajectory)
+{
     vector <Trajectory> smoothed_trajectory; // trajectory at all frames
 
     for(size_t i=0; i < trajectory.size(); i++) {
@@ -271,13 +214,19 @@ int main(int argc, char **argv)
         smoothed_trajectory.push_back(Trajectory(avg_x, avg_y, avg_a));
     }
 
-    // Step 4 - Generate new set of previous to current transform, such that the trajectory ends up being the same as the smoothed trajectory
-    vector <TransformParam> new_prev_to_cur_transform;
+    return smoothed_trajectory;
+}
 
-    // Accumulated frame to frame transform
-    a = 0;
-    x = 0;
-    y = 0;
+/* Calculates a new transformation */
+vector <TransformParam> newTransformation(
+                    vector <TransformParam> prev_to_cur_transform,
+                    vector <Trajectory> smoothed_trajectory
+                    )
+{
+    double a = 0;
+    double x = 0;
+    double y = 0;
+    vector <TransformParam> new_prev_to_cur_transform;
 
     for(size_t i=0; i < prev_to_cur_transform.size(); i++) {
         x += prev_to_cur_transform[i].dx;
@@ -296,11 +245,22 @@ int main(int argc, char **argv)
         new_prev_to_cur_transform.push_back(TransformParam(dx, dy, da));
     }
 
-    // Step 5 - Apply the new transformation to the video
-    /*cap.set(CV_CAP_PROP_POS_FRAMES, 0);
+    return new_prev_to_cur_transform;
+
+}
+
+/* Applies the new transformation in the video */
+void applyTransformation(VideoCapture cap,
+                         vector <TransformParam> new_prev_to_cur_transform,
+                         int vert_border,
+                         int count_frames
+                        )
+{
+    cap.set(CV_CAP_PROP_POS_FRAMES, 0);
     Mat T(2,3,CV_64F);
 
-    int vert_border = HORIZONTAL_BORDER_CROP * last_frame.rows / last_frame.cols; // get the aspect ratio correct
+    int k = 0;
+    Mat cur;
 
     while(k < count_frames-1) { // don't process the very last frame, no valid transform
         cap >> cur;
@@ -340,10 +300,86 @@ int main(int argc, char **argv)
         imshow("before and after", canvas);
         waitKey(20);
         k++;
-    }*/
+    }
 
+}
 
-    //printf("\n");
+int main(int argc, char **argv)
+{
+    /*local variables*/
+    double t_run =0.0, t_r = 0.0;
+    long   memory_limit;
+    long count_frames = 0;
+    vector <Mat> frames;
+    Mat last_frame;
+
+    /*Put opecnv in sequential, non-optimized mode*/
+    setNumThreads(0);
+    setUseOptimized (0);
+
+    /*Checks if file name passed by command line*/
+    if(argc < 3) {
+        cout << "./VideoStab [video.avi]" << endl;
+        cout << "Memory Limit" << endl;
+        return 0;
+    }
+
+    VideoCapture cap(argv[1]);
+    memory_limit = atol (argv[2]);
+    assert(cap.isOpened());
+
+    frames = readFrames(cap, memory_limit * GB);
+
+    vector <TransformParam> prev_to_cur_transform;
+    vector <TransformParam> *prev_to_cur_transform_tmp = new vector<TransformParam>(frames.size()-1);
+    Data *data = new Data;
+
+    // Step 1 - Get previous to current frame transformation (dx, dy, da) for all frames
+    while( frames.size() > 0 ){
+        count_frames += frames.size()-1;
+        data->nt = 1;
+        data->rank = 0;
+        data->frames = &frames;
+        data->prev_to_cur_transform = prev_to_cur_transform_tmp;
+
+        t_r = rtclock();
+        transformationFrame((void *)data);
+        t_run += rtclock() - t_r;
+
+        prev_to_cur_transform.insert(prev_to_cur_transform.end(), prev_to_cur_transform_tmp->begin(), prev_to_cur_transform_tmp->end());
+
+        /*Take the last frame of this slice */
+        last_frame = frames[frames.size()-1];
+
+        /*Free memory*/
+        frames.clear();
+
+        /*Read the missing frames*/
+        frames = readFrames(cap, memory_limit * GB);
+
+        if (frames.size() > 0){
+            /* Copy the last frame to the first position of the new slice */
+            frames.insert(frames.begin(), last_frame);
+            prev_to_cur_transform_tmp->resize(frames.size()-1);
+        }
+
+    }
+
+    cout << std::setprecision(6) << t_run << endl;
+
+    // Step 2 - Accumulate the transformations to get the image trajectory
+    // Accumulated frame to frame transform
+    vector <Trajectory> trajectory = accumulateTransformations(prev_to_cur_transform); // trajectory at all frames
+
+    // Step 3 - Smooth out the trajectory using an averaging window
+    vector <Trajectory> smoothed_trajectory = smoothedTrajectory(trajectory); // trajectory at all frames
+
+    // Step 4 - Generate new set of previous to current transform, such that the trajectory ends up being the same as the smoothed trajectory
+    vector <TransformParam> new_prev_to_cur_transform = newTransformation(prev_to_cur_transform, smoothed_trajectory);
+
+    int vert_border = HORIZONTAL_BORDER_CROP * last_frame.rows / last_frame.cols; // get the aspect ratio correct
+    // Step 5 - Apply the new transformation to the video
+    applyTransformation(cap, new_prev_to_cur_transform, vert_border, count_frames);
 
     return 0;
 }
