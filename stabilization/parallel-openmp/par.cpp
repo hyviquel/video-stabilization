@@ -89,7 +89,7 @@ double rtclock()
     return(Tp.tv_sec + Tp.tv_usec*1.0e-6);
 }
 
-/*Carrega um limite de quadros para memoria, dado por memory_limit*/
+/*Loads a frame boundary for memory, given by memory_limit*/
 vector <Mat> readFrames(VideoCapture cap, long memory_limit)
 {
     vector <Mat> frames;
@@ -107,7 +107,7 @@ vector <Mat> readFrames(VideoCapture cap, long memory_limit)
     return frames;
 }
 
-//Calcula transformaca nos frames
+//Calculates transform in the frames
 void * transformationFrame(void * data )
 {
     Mat  cur_grey, prev_grey;
